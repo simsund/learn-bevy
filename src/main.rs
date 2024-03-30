@@ -3,9 +3,15 @@ use bevy::prelude::*;
 fn main() {
     App::new()
         .add_systems(Startup, setup)
-        .add_systems(Update, people_with_jobs)
-        .add_systems(Update, people_without_job)
-        .add_systems(Update, people_ready_for_hire)
+        .add_systems(
+            Update,
+            (
+                people_with_jobs,
+                people_without_job,
+                people_ready_for_hire,
+                people_does_job,
+            ),
+        )
         .run()
 }
 
@@ -54,6 +60,17 @@ pub fn people_without_job(person_query: Query<&Person, Without<Employed>>) {
 pub fn people_ready_for_hire(person_query: Query<&Person, Without<Employed>>) {
     for person in person_query.iter() {
         println!("{} are ready for hire.", person.name)
+    }
+}
+
+pub fn people_does_job(person_query: Query<(&Person, &Employed)>) {
+    for (person, employed) in person_query.iter() {
+        let job_name = match employed.job {
+            Job::Doctor => "Doctor",
+            Job::Firefighter => "Firefighter",
+            Job::Lawyer => "Lawyer",
+        };
+        println!("{0} is a {1}", person.name, job_name)
     }
 }
 
