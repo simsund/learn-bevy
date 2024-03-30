@@ -45,6 +45,9 @@ pub fn setup(mut commands: Commands) {
     commands.spawn(Person {
         name: "Alex 5".to_string(),
     });
+    commands.spawn(Person {
+        name: "Alex 6".to_string(),
+    });
 }
 
 pub fn print_names(person_query: Query<&Person>) {
