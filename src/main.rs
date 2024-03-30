@@ -2,8 +2,16 @@ use bevy::prelude::*;
 
 fn main() {
     App::new()
-        .add_systems(Startup, setup)
-        .add_systems(
+        .add_plugins(DefaultPlugins)
+        .add_plugins(PeoplePlugin)
+        .run()
+}
+
+pub struct PeoplePlugin;
+
+impl Plugin for PeoplePlugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Startup, setup).add_systems(
             Update,
             (
                 people_with_jobs,
@@ -11,8 +19,8 @@ fn main() {
                 people_ready_for_hire,
                 people_does_job,
             ),
-        )
-        .run()
+        );
+    }
 }
 
 pub fn setup(mut commands: Commands) {
