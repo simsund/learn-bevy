@@ -1,17 +1,19 @@
 use bevy::audio::AudioBundle;
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
+use bevy_audio::Volume;
 use rand::prelude::*;
 
 pub const PLAYER_SPEED: f32 = 500.0;
 pub const PLAYER_SIZE: f32 = 64.0;
 
-pub const NUMBER_OF_ENEMIES: usize = 20;
+pub const NUMBER_OF_ENEMIES: usize = 10;
 pub const ENEMY_SPEED: f32 = 100.0;
 pub const ENEMY_SIZE: f32 = 64.0;
 
 fn main() {
     App::new()
+        .add_event::<EnemySoundQueue>()
         .add_plugins(DefaultPlugins)
         .add_systems(Startup, (spawn_player, spawn_camera, spawn_enemies))
         .add_systems(
@@ -22,6 +24,7 @@ fn main() {
                 enemy_movement,
                 update_enemy_direction,
                 confine_enemy_movement,
+                enemy_sound_queue,
             ),
         )
         .run()
@@ -34,8 +37,8 @@ pub struct Enemy {
     pub direction: Vec2,
 }
 
-#[derive(Component)]
-pub struct EnemySoundQueue {}
+#[derive(Event)]
+pub struct EnemySoundQueue(Entity);
 
 pub fn spawn_player(
     mut commands: Commands,
@@ -141,9 +144,9 @@ pub fn enemy_movement(mut enemy_query: Query<(&mut Transform, &Enemy)>, time: Re
 }
 
 pub fn update_enemy_direction(
-    mut enemy_query: Query<(&Transform, &mut Enemy)>,
+    mut enemy_query: Query<(&Transform, &mut Enemy, Entity)>,
     window_query: Query<&Window, With<PrimaryWindow>>,
-    asset_server: Res<AssetServer>,
+    mut enemy_ev_writer: EventWriter<EnemySoundQueue>,
 ) {
     if let Ok(window) = window_query.get_single() {
         let half_enemy_size = ENEMY_SIZE / 2.0;
@@ -152,7 +155,7 @@ pub fn update_enemy_direction(
         let y_min = 0.0 + half_enemy_size;
         let y_max = window.height() - half_enemy_size;
 
-        for (transform, mut enemy) in enemy_query.iter_mut() {
+        for (transform, mut enemy, entity) in enemy_query.iter_mut() {
             let mut direction_changed = false;
 
             let translation = transform.translation;
@@ -165,7 +168,9 @@ pub fn update_enemy_direction(
                 direction_changed = true;
             }
 
-            if direction_changed {}
+            if direction_changed {
+                enemy_ev_writer.send(EnemySoundQueue(entity));
+            }
         }
     }
 }
@@ -189,12 +194,22 @@ pub fn confine_enemy_movement(
     }
 }
 
-pub fn enemy_sound_queue(asset_server: Res<AssetServer>, mut commands: Commands) {
-    commands.spawn((
-        AudioBundle {
+pub fn enemy_sound_queue(
+    asset_server: Res<AssetServer>,
+    mut commands: Commands,
+    mut enemy_ev_reader: EventReader<EnemySoundQueue>,
+) {
+    for event in enemy_ev_reader.read() {
+        commands.entity(event.0).insert(AudioBundle {
             source: asset_server.load("audio/pluck_001.ogg"),
-            ..default()
-        },
-        EnemySoundQueue {},
-    ));
+            settings: PlaybackSettings::REMOVE.with_volume(Volume::new(0.1)),
+        });
+    }
+}
+
+pub fn enemy_hit_player(
+    mut commands: Commands,
+    mut player_query: Query<&Transform, With<Player>>,
+    asset_server: Res<AssetServer>,
+) {
 }
